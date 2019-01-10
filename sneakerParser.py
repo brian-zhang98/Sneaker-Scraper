@@ -4,11 +4,12 @@ import re
 import sys
 import time
 
+#TO-DO: GOAT AUTOMATION DETECTION (also goat has a different url after you click for available sizes), ADD STADIUMGGOODS TO SITES SCRAPABLE
 #site: search url, product url
 SITES_TO_PARSE = {
 	'stockx': ['/search?s=', '/'],
 	'goat': ['/search?query=', '/sneakers/'],
-	'flightclub': ['/catalogsearch/result/q?=', '/']
+	'flightclub': ['/catalogsearch/result/?q=', '/']
 }
 
 class SneakerParser:
@@ -35,7 +36,7 @@ class SneakerParser:
 		#if(self.soup.find('div', class_ = 'not-found-title') is not None):
 
 		#404.. is 404 followed by 2 wildcards to avoid finding a $404 price or something similar, should work for all sites
-		if(self.soup.find(string=re.compile('404..')) is not None):
+		if(self.soup.find(string=re.compile('404..')) is not None or self.soup.find(string='SKU: ') is not None):
 			return False
 		return True
 
@@ -47,6 +48,12 @@ class SneakerParser:
 				if('$' in div.find_next_sibling('div').get_text()):
 					self.price = div.find_next_sibling('div').get_text()
 			print(self.price)
+		#goat
+		elif(self.site == list(SITES_TO_PARSE.keys())[1]):
+			print('price')
+			pass
+		elif(self.site == list(SITES_TO_PARSE.keys())[2]):
+			pass
 
 	def update_search_url(self):
 		self.url = 'https://' + self.site + '.com' + SITES_TO_PARSE[self.site][0] + self.product.replace(' ', '%20')
@@ -56,6 +63,14 @@ class SneakerParser:
 		if(self.site == list(SITES_TO_PARSE.keys())[0]):
 			for result in self.soup.find_all('a', class_ = 'tile-link'):
 				self.search_results[result.find_next('h4').get_text().lower()] = result['href']
+		#goat
+		elif(self.site == list(SITES_TO_PARSE.keys())[1]):
+			for result in self.soup.find_all('a', class_ = 'cell', attrs={'data-qa': 'search_grid_cell'}):
+				self.search_results[result.find_next('div', class_='grid-cell--name').find_next('p').get_text().lower()] = result['href']
+		#flightclub - href is full link, shoe names are wack
+		elif(self.site == list(SITES_TO_PARSE.keys())[2]):
+			for result in self.soup.find_all('a', class_ = 'result algolia-clearfix'):
+				self.search_results[result.find_next('p', class_='result-title text-ellipsis').get_text().lower()] = result['href']
 
 	#show search results, make sure to give an option to back out and try and re-search, also remember to change self.url here
 	def display_search_results(self):
@@ -70,10 +85,8 @@ class SneakerParser:
 			sys.stdout.write('Please choose a shoe from the results either with its corresponding # or its full name. Please enter -1 to enter a new search string.\n')
 			input_shoe = input().lower()
 			if(input_shoe == '-1'):
-				#prompt for new search/shoe
 				return False
-			#TODO - HANDLE CASE WHERE NUMBER IS GREATER THAN LEN(DICT)
-			elif(input_shoe.isdigit() and int(input_shoe) <= len(self.search_results.keys())):
+			elif(input_shoe.isdigit() and int(input_shoe) <= len(self.search_results.keys()) and int(input_shoe) != 0):
 				self.url = 'https://' + self.site + '.com' + SITES_TO_PARSE[self.site][1] + self.search_results[list(self.search_results.keys())[int(input_shoe)-1]]
 				return True
 			elif(input_shoe in self.search_results.keys()):
@@ -84,25 +97,25 @@ class SneakerParser:
 		pass
 
 if __name__ == '__main__':
-	#parser = SneakerParser('Adidas Yeezy Boost 350 V2 Static Reflective', '9.5', 'stockx')
-	sys.stdout.write('What shoe are you looking for?\n')
-	shoe = input()
-	sys.stdout.write('What size are you?\n')
-	size = input()
+	while(True):
+		sys.stdout.write('What shoe are you looking for?\n')
+		shoe = input()
+		sys.stdout.write('What size are you?\n')
+		size = input()
 
-	parser = SneakerParser(shoe, size, 'stockx')
-	parser.get_html()
-	#print(parser.html)
-	if(parser.is_product_page()):
-		parser.get_set_price()
-	else:
-		parser.update_search_url()
+		#parser = SneakerParser('Adidas Yeezy Boost 350 V2 Static Reflective', '9.5', 'stockx')
+		parser = SneakerParser(shoe, size, 'flightclub')
 		parser.get_html()
-		parser.get_search_results()
-		parser.display_search_results()
-		if(parser.prompt_for_shoe()):
-			parser.get_html()
+		#print(parser.html)
+		if(parser.is_product_page()):
 			parser.get_set_price()
 		else:
-			#handle -1 input
-			pass
+			parser.update_search_url()
+			#time.sleep(10)
+			parser.get_html()
+			parser.get_search_results()
+			parser.display_search_results()
+			if(parser.prompt_for_shoe()):
+				parser.get_html()
+				parser.get_set_price()
+				break
