@@ -17,3 +17,6 @@ Pandas dataframe with columns that show shoe size and lowest available price
 
 CasperJS for browser automation
 Beautifulsoup and Pandas to search webpage for relevant information
+
+CURRENTLY WIP - improving parser (for more sites) and replacing unnecessary CasperJS with Selenium
+-requires Selenium Chrome webdriver in path - https://sites.google.com/a/chromium.org/chromedriver/downloads
