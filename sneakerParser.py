@@ -85,7 +85,12 @@ class SneakerParser:
 
 if __name__ == '__main__':
 	#parser = SneakerParser('Adidas Yeezy Boost 350 V2 Static Reflective', '9.5', 'stockx')
-	parser = SneakerParser('Adidas Yeezy Boost 350 V2', '9.5', 'stockx')
+	sys.stdout.write('What shoe are you looking for?\n')
+	shoe = input()
+	sys.stdout.write('What size are you?\n')
+	size = input()
+
+	parser = SneakerParser(shoe, size, 'stockx')
 	parser.get_html()
 	#print(parser.html)
 	if(parser.is_product_page()):
