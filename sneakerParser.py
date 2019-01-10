@@ -46,6 +46,7 @@ class SneakerParser:
 			for div in divs:
 				if('$' in div.find_next_sibling('div').get_text()):
 					self.price = div.find_next_sibling('div').get_text()
+			print(self.price)
 
 	def update_search_url(self):
 		self.url = 'https://' + self.site + '.com' + SITES_TO_PARSE[self.site][0] + self.product.replace(' ', '%20')
@@ -57,28 +58,27 @@ class SneakerParser:
 				self.search_results[result.find_next('h4').get_text().lower()] = result['href']
 
 	#show search results, make sure to give an option to back out and try and re-search, also remember to change self.url here
-	def prompt_for_shoe(self):
+	def display_search_results(self):
 		count = 1;
 		print('Displaying {} results:'.format(len(self.search_results)))
 		for shoe in self.search_results:
 			print(str(count) + '. ' + shoe)
 			count += 1
-		sys.stdout.write('Please choose a shoe from the results either with its corresponding # or its full name. Please enter -1 to enter a new search string.\n')
-		input_shoe = input().lower()
-		if(input_shoe == '-1'):
-			#prompt for new search/shoe
-			pass
-		#TODO - HANDLE CASE WHERE NUMBER IS GREATER THAN LEN(DICT)
-		elif(input_shoe.isdigit()):
-			self.url = 'https://' + self.site + '.com' + SITES_TO_PARSE[self.site][1] + self.search_results[list(self.search_results.keys())[int(input_shoe)-1]]
-			print(self.url)
-		else:
-			if(input_shoe in self.search_results.keys()):
+
+	def prompt_for_shoe(self):
+		while(True):
+			sys.stdout.write('Please choose a shoe from the results either with its corresponding # or its full name. Please enter -1 to enter a new search string.\n')
+			input_shoe = input().lower()
+			if(input_shoe == '-1'):
+				#prompt for new search/shoe
+				return False
+			#TODO - HANDLE CASE WHERE NUMBER IS GREATER THAN LEN(DICT)
+			elif(input_shoe.isdigit() and int(input_shoe) <= len(self.search_results.keys())):
+				self.url = 'https://' + self.site + '.com' + SITES_TO_PARSE[self.site][1] + self.search_results[list(self.search_results.keys())[int(input_shoe)-1]]
+				return True
+			elif(input_shoe in self.search_results.keys()):
 				self.url = 'https://' + self.site + '.com' + SITES_TO_PARSE[self.site][1] + self.search_results[input_shoe]
-				print(self.url)
-
-
-
+				return True
 
 	def put_to_db(self):
 		pass
@@ -94,4 +94,10 @@ if __name__ == '__main__':
 		parser.update_search_url()
 		parser.get_html()
 		parser.get_search_results()
-		parser.prompt_for_shoe()
+		parser.display_search_results()
+		if(parser.prompt_for_shoe()):
+			parser.get_html()
+			parser.get_set_price()
+		else:
+			#handle -1 input
+			pass
