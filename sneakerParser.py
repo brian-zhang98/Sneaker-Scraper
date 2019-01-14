@@ -5,11 +5,11 @@ import sys
 import time
 
 #TO-DO: GOAT AUTOMATION DETECTION (also goat has a different url after you click for available sizes), ADD STADIUMGGOODS TO SITES SCRAPABLE
-#site: search url, product url
+#site: search url, product url, anything else that needs to be at the end of url
 SITES_TO_PARSE = {
-	'stockx': ['/search?s=', '/'],
-	'goat': ['/search?query=', '/sneakers/'],
-	'flightclub': ['/catalogsearch/result/?q=', '/']
+	'stockx': ['/search?s=', '/', ''],
+	'goat': ['/search?query=', '/sneakers/', 'available-sizes'],
+	'flightclub': ['/catalogsearch/result/?q=', '/', '?size={}']
 }
 
 class SneakerParser:
@@ -17,7 +17,7 @@ class SneakerParser:
 		self.product = input_product
 		self.size = size
 		self.site = site_to_parse
-		self.url = 'https://' + self.site + '.com' + SITES_TO_PARSE[self.site][1] + self.product.replace(' ', '-')
+		self.url = 'https://' + self.site + '.com' + SITES_TO_PARSE[self.site][1] + self.product.replace(' ', '-') + SITES_TO_PARSE[self.site][2].format(self.size)
 		self.html = None
 		self.soup = None
 		self.price = None
@@ -52,8 +52,16 @@ class SneakerParser:
 		elif(self.site == list(SITES_TO_PARSE.keys())[1]):
 			print('price')
 			pass
+		#flightclub
 		elif(self.site == list(SITES_TO_PARSE.keys())[2]):
-			pass
+			if(self.soup.find('button', class_ = re.compile('attribute-selected')).get_text().replace('"', '').strip() == self.size):
+				print(self.soup.find('button', class_ = re.compile('attribute-selected')).get_text().replace('"', '').strip())
+				self.price = self.soup.find('span', class_ = 'regular-price').find('span', class_='price', string = re.compile('\$')).get_text()
+				print(self.price)
+			else:
+				print('oops')
+				print(self.soup.find('button', class_ = re.compile('attribute-selected')).get_text().replace('"', '').strip())
+				print(type(self.soup.find('button', class_ = re.compile('attribute-selected')).get_text().replace('"', '').strip()))
 
 	def update_search_url(self):
 		self.url = 'https://' + self.site + '.com' + SITES_TO_PARSE[self.site][0] + self.product.replace(' ', '%20')
@@ -70,7 +78,9 @@ class SneakerParser:
 		#flightclub - href is full link, shoe names are wack
 		elif(self.site == list(SITES_TO_PARSE.keys())[2]):
 			for result in self.soup.find_all('a', class_ = 'result algolia-clearfix'):
-				self.search_results[result.find_next('p', class_='result-title text-ellipsis').get_text().lower()] = result['href']
+				shoe = result['href'].split('/')[-1].replace('-', ' ').lower()
+				#self.search_results[result.find_next('p', class_='result-title text-ellipsis').get_text().lower()] = result['href']
+				self.search_results[shoe] = '/' + result['href'].split('/')[-1]
 
 	#show search results, make sure to give an option to back out and try and re-search, also remember to change self.url here
 	def display_search_results(self):
@@ -80,17 +90,17 @@ class SneakerParser:
 			print(str(count) + '. ' + shoe)
 			count += 1
 
-	def prompt_for_shoe(self):
+	def prompt_for_shoe_from_results(self):
 		while(True):
 			sys.stdout.write('Please choose a shoe from the results either with its corresponding # or its full name. Please enter -1 to enter a new search string.\n')
 			input_shoe = input().lower()
 			if(input_shoe == '-1'):
 				return False
 			elif(input_shoe.isdigit() and int(input_shoe) <= len(self.search_results.keys()) and int(input_shoe) != 0):
-				self.url = 'https://' + self.site + '.com' + SITES_TO_PARSE[self.site][1] + self.search_results[list(self.search_results.keys())[int(input_shoe)-1]]
+				self.url = 'https://' + self.site + '.com' + SITES_TO_PARSE[self.site][1] + self.search_results[list(self.search_results.keys())[int(input_shoe)-1]] + SITES_TO_PARSE[self.site][2].format(self.size)
 				return True
 			elif(input_shoe in self.search_results.keys()):
-				self.url = 'https://' + self.site + '.com' + SITES_TO_PARSE[self.site][1] + self.search_results[input_shoe]
+				self.url = 'https://' + self.site + '.com' + SITES_TO_PARSE[self.site][1] + self.search_results[input_shoe] + SITES_TO_PARSE[self.site][2].format(self.size)
 				return True
 
 	def put_to_db(self):
@@ -102,7 +112,6 @@ if __name__ == '__main__':
 		shoe = input()
 		sys.stdout.write('What size are you?\n')
 		size = input()
-
 		#parser = SneakerParser('Adidas Yeezy Boost 350 V2 Static Reflective', '9.5', 'stockx')
 		parser = SneakerParser(shoe, size, 'flightclub')
 		parser.get_html()
@@ -115,7 +124,7 @@ if __name__ == '__main__':
 			parser.get_html()
 			parser.get_search_results()
 			parser.display_search_results()
-			if(parser.prompt_for_shoe()):
+			if(parser.prompt_for_shoe_from_results()):
 				parser.get_html()
 				parser.get_set_price()
 				break
