@@ -30,29 +30,7 @@ class SneakerParser:
 		self.html=driver.page_source
 		self.soup = BeautifulSoup(self.html, 'lxml')
 		driver.close()
-
-	def get_flightclub_product_html(self):
-		driver = webdriver.Chrome()
-		driver.get(self.url)
-		time.sleep(5)
-		self.html = driver.page_source
-		self.soup = BeautifulSoup(self.html, 'lxml')
-		cdn = self.soup.find('a', attrs={'title': re.compile('https://www.flightclub.com/directory/currency/switch/currency/CAD/')})['href']
-		print(cdn)
-		time.sleep(5)
-		driver.get(cdn)
-		time.sleep(5)
-		self.html = driver.page_source
-		self.soup = BeautifulSoup(self.html, 'lxml')
-		buttons = self.soup.find_all('button', class_ = re.compile('attribute-button-text '))
-		for button in buttons:
-			if(button.get_text().replace('"', '').strip() == self.size):
-				id = button['id']
-		driver.find_element_by_id(id).click()
-		time.sleep(5)
-		self.html = driver.page_source
-		self.soup = BeautifulSoup(self.html, 'lxml')
-
+		
 	def is_product_page(self):
 		#StockX has this on its 404 not found page
 		#if(self.soup.find('div', class_ = 'not-found-title') is not None):
@@ -76,6 +54,26 @@ class SneakerParser:
 			pass
 		#flightclub
 		elif(self.site == list(SITES_TO_PARSE.keys())[2]):
+			driver = webdriver.Chrome()
+			driver.get(self.url)
+			time.sleep(5)
+			self.html = driver.page_source
+			self.soup = BeautifulSoup(self.html, 'lxml')
+			cdn = self.soup.find('a', attrs={'title': re.compile('https://www.flightclub.com/directory/currency/switch/currency/CAD/')})['href']
+			time.sleep(5)
+			driver.get(cdn)
+			time.sleep(5)
+			self.html = driver.page_source
+			self.soup = BeautifulSoup(self.html, 'lxml')
+			buttons = self.soup.find_all('button', class_ = re.compile('attribute-button-text '))
+			for button in buttons:
+				if(button.get_text().replace('"', '').strip() == self.size):
+					id = button['id']
+			driver.find_element_by_id(id).click()
+			time.sleep(5)
+			self.html = driver.page_source
+			self.soup = BeautifulSoup(self.html, 'lxml')
+
 			self.price = self.soup.find('span', class_ = 'regular-price').find('span', class_='price', string = re.compile('\$')).get_text()
 			print(self.price)
 
@@ -141,6 +139,6 @@ if __name__ == '__main__':
 			parser.get_search_results()
 			parser.display_search_results()
 			if(parser.prompt_for_shoe_from_results()):
-				parser.get_flightclub_product_html()
+				parser.get_html()
 				parser.get_set_price()
 				break
